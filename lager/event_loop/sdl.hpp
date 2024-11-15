@@ -12,6 +12,8 @@
 
 #pragma once
 
+#include <lager/config.hpp>
+
 #include <SDL2/SDL.h>
 
 #include <algorithm>
@@ -23,6 +25,7 @@
 
 #include <cassert>
 #include <cstddef>
+#include <cstdint>
 
 #if __EMSCRIPTEN__
 #include <emscripten.h>
@@ -196,7 +199,7 @@ struct with_sdl_event_loop
     template <typename Fn>
     void async(Fn&& fn)
     {
-        throw std::logic_error{"not implemented!"};
+        LAGER_THROW(std::logic_error{"not implemented!"});
     }
 
     template <typename Fn>

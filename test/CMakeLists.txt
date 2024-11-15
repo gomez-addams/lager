@@ -49,7 +49,7 @@ find_package(Qt5 COMPONENTS Core Concurrent)
 add_custom_target(tests COMMENT "Build all the unit tests.")
 add_dependencies(check tests)
 
-file(GLOB_RECURSE lager_unit_tests "*.cpp")
+file(GLOB lager_unit_tests "*.cpp" "cereal/*.cpp" "event_loop/*.cpp" "extra/*.cpp" "detail/*.cpp")
 
 foreach(_file IN LISTS lager_unit_tests)
   message("found unit test: " ${_file})
@@ -63,6 +63,11 @@ foreach(_file IN LISTS lager_unit_tests)
   set_target_properties(${_target} PROPERTIES OUTPUT_NAME ${_output})
   add_dependencies(tests ${_target})
   target_compile_definitions(${_target} PUBLIC CATCH_CONFIG_MAIN)
-  target_link_libraries(${_target} PUBLIC lager-dev ${_qt_libs})
+  target_link_libraries(${_target} PUBLIC lager-dev Catch2::Catch2 ${_qt_libs})
   add_test("test/${_output}" ${_output})
 endforeach()
+
+
+if (lager_BUILD_FAILURE_TESTS)
+  add_subdirectory(build_failure)
+endif()

@@ -22,11 +22,14 @@ stdenv.mkDerivation rec {
     cmake
     gcc7
     sass
-    pkgconfig
+    pkgs.pkg-config or pkgs.pkgconfig
+  ];
+  cmakeFlags = [
+    "-Dlager_BUILD_TESTS=OFF"
+    "-Dlager_BUILD_EXAMPLES=OFF"
   ];
   propagatedBuildInputs = [
     boost
-    deps.libhttpserver
     deps.cereal
     deps.immer
     deps.zug
@@ -34,6 +37,6 @@ stdenv.mkDerivation rec {
   meta = {
     homepage    = "https://github.com/arximboldi/lager";
     description = "library for functional interactive c++ programs";
-    license     = lib.licenses.lgpl3Plus;
+    license     = lib.licenses.mit;
   };
 }

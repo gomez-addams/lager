@@ -10,7 +10,7 @@
 // or here: <https://github.com/arximboldi/lager/blob/master/LICENSE>
 //
 
-#include <catch.hpp>
+#include <catch2/catch.hpp>
 
 #include <lager/event_loop/safe_queue.hpp>
 #include <lager/store.hpp>
@@ -49,4 +49,19 @@ TEST_CASE("threads")
     queue.step();
 
     CHECK(store->value == 200);
+}
+
+TEST_CASE("exception")
+{
+    auto called = 0;
+    auto loop   = lager::safe_queue_event_loop{};
+
+    loop.post([&] { throw std::runtime_error{"noo!"}; });
+    loop.post([&] { ++called; });
+
+    CHECK_THROWS(loop.step());
+    CHECK(called == 0);
+
+    loop.step();
+    CHECK(called == 1);
 }

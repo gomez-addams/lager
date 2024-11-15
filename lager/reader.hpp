@@ -71,7 +71,11 @@ private:
 
     auto node_() const
     {
-        return detail::access::node(*static_cast<const DerivT*>(this));
+        if (auto node =
+                detail::access::node(*static_cast<const DerivT*>(this))) {
+            return node;
+        }
+        LAGER_THROW(std::runtime_error("Accessing uninitialized reader"));
     }
 };
 
@@ -92,29 +96,38 @@ public:
 
     reader_base() = default;
 
-    template <typename T>
+    template <typename T,
+              std::enable_if_t<std::is_same_v<zug::meta::value_t<NodeT>,
+                                              zug::meta::value_t<T>>,
+                               int> = 0>
     reader_base(reader_base<T> x)
         : base_t{std::move(x)}
-    {}
+    {
+    }
 
-    template <typename T>
+    template <typename T,
+              std::enable_if_t<std::is_same_v<zug::meta::value_t<NodeT>,
+                                              zug::meta::value_t<T>>,
+                               int> = 0>
     reader_base(cursor_base<T> x)
         : base_t{std::move(x)}
-    {}
+    {
+    }
 
     template <typename NodeT2>
     reader_base(std::shared_ptr<NodeT2> n)
         : base_t{std::move(n)}
-    {}
+    {
+    }
 };
 
 /*!
  * Provides access to reading values of type `T`.
  */
 template <typename T>
-class reader : public reader_base<detail::reader_node<T>>
+class reader : public reader_base<detail::observable_reader_node<T>>
 {
-    using base_t = reader_base<detail::reader_node<T>>;
+    using base_t = reader_base<detail::observable_reader_node<T>>;
 
 public:
     using base_t::base_t;

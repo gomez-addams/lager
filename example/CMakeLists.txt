@@ -15,7 +15,7 @@ add_dependencies(examples counter-std)
 # ncurses examples
 # ================
 
-set(CMAKE_CURSES_NEED_WIDE true)
+set(CURSES_NEED_WIDE true)
 
 find_package(Curses)
 
@@ -63,11 +63,11 @@ if (SDL2_FOUND AND SDL2_ttf_FOUND)
     add_executable(counter-sdl2 EXCLUDE_FROM_ALL
       counter/sdl2/main.cpp)
     target_include_directories(counter-sdl2 SYSTEM PUBLIC
-      ${SDL2_INCLUDE_DIR}
+      ${SDL2_INCLUDE_DIRS}
       ${SDL2_TTF_INCLUDE_DIR})
     target_link_libraries(counter-sdl2
       lager-debugger-example
-      ${SDL2_LIBRARY}
+      ${SDL2_LIBRARIES}
       ${SDL2_TTF_LIBRARIES})
     add_dependencies(examples counter-sdl2)
 
@@ -75,11 +75,11 @@ if (SDL2_FOUND AND SDL2_ttf_FOUND)
       autopong/autopong.cpp
       autopong/sdl2/main.cpp)
     target_include_directories(autopong SYSTEM PUBLIC
-      ${SDL2_INCLUDE_DIR}
+      ${SDL2_INCLUDE_DIRS}
       ${SDL2_TTF_INCLUDE_DIR})
     target_link_libraries(autopong
       lager-debugger-example
-      ${SDL2_LIBRARY}
+      ${SDL2_LIBRARIES}
       ${SDL2_TTF_LIBRARIES})
     add_dependencies(examples autopong)
 
@@ -88,11 +88,11 @@ if (SDL2_FOUND AND SDL2_ttf_FOUND)
       autopong/sdl2/main.cpp)
     target_compile_definitions(autopong-debug PUBLIC DEBUGGER)
     target_include_directories(autopong-debug SYSTEM PUBLIC
-      ${SDL2_INCLUDE_DIR}
+      ${SDL2_INCLUDE_DIRS}
       ${SDL2_TTF_INCLUDE_DIR})
     target_link_libraries(autopong-debug
       lager-debugger-example
-      ${SDL2_LIBRARY}
+      ${SDL2_LIBRARIES}
       ${SDL2_TTF_LIBRARIES})
     add_dependencies(examples autopong-debug)
   endif()
@@ -120,7 +120,7 @@ if (Qt5Core_FOUND AND Qt5Concurrent_FOUND AND Qt5Gui_FOUND AND Qt5Widgets_FOUND 
   set_target_properties(todo-qml PROPERTIES AUTOMOC YES)
   target_link_libraries(todo-qml lager-example Qt5::Core Qt5::Gui Qt5::Widgets Qt5::Qml Qt5::QuickControls2)
   target_compile_definitions(todo-qml PRIVATE
-    LAGER_TODO_QML_DIR="${CMAKE_SOURCE_DIR}/example/todo/qml")
+    LAGER_TODO_QML_DIR="${CMAKE_CURRENT_SOURCE_DIR}/todo/qml")
   add_dependencies(examples todo-qml)
 
   add_executable(todo-qml-redux EXCLUDE_FROM_ALL
@@ -131,7 +131,7 @@ if (Qt5Core_FOUND AND Qt5Concurrent_FOUND AND Qt5Gui_FOUND AND Qt5Widgets_FOUND 
   set_target_properties(todo-qml-redux PROPERTIES AUTOMOC YES)
   target_link_libraries(todo-qml-redux lager-example Qt5::Core Qt5::Gui Qt5::Widgets Qt5::Qml Qt5::QuickControls2)
   target_compile_definitions(todo-qml-redux PRIVATE
-    LAGER_TODO_QML_DIR="${CMAKE_SOURCE_DIR}/example/todo/qml-redux")
+    LAGER_TODO_QML_DIR="${CMAKE_CURRENT_SOURCE_DIR}/todo/qml-redux")
   add_dependencies(examples todo-qml-redux)
 
   add_executable(snake-qml EXCLUDE_FROM_ALL
@@ -140,7 +140,7 @@ if (Qt5Core_FOUND AND Qt5Concurrent_FOUND AND Qt5Gui_FOUND AND Qt5Widgets_FOUND 
   target_link_libraries(snake-qml lager-example Qt5::Core Qt5::Concurrent Qt5::Gui Qt5::Widgets Qt5::Qml Qt5::QuickControls2)
   target_include_directories(snake-qml PRIVATE ${Boost_INCLUDE_DIRS})
   target_compile_definitions(snake-qml PRIVATE
-    LAGER_SNAKE_QML_DIR="${CMAKE_SOURCE_DIR}/example/snake/qml")
+    LAGER_SNAKE_QML_DIR="${CMAKE_CURRENT_SOURCE_DIR}/snake/qml")
   add_dependencies(examples snake-qml)
 else()
   message(STATUS "Disabling Qt based examples")
@@ -161,14 +161,16 @@ set(imgui_sources
   "${imgui_source_dir}/imgui_impl_sdl.cpp"
   "${imgui_source_dir}/imgui_impl_opengl3.cpp")
 
-if (OPENGL_FOUND AND SDL2_FOUND AND EXISTS "${imgui_source_dir}/imgui.h")
+find_program(EMXX em++)
+
+if (EMXX AND OPENGL_FOUND AND SDL2_FOUND AND EXISTS "${imgui_source_dir}/imgui.h")
   message(STATUS "ImGui found in ${imgui_source_dir}")
 
   set(extra_emcc_flags $ENV{NIX_CFLAGS_COMPILE})
   separate_arguments(extra_emcc_flags)
 
   add_custom_target(todo-imgui
-    COMMAND em++ ${extra_emcc_flags}
+    COMMAND ${EMXX} ${extra_emcc_flags}
       -Os
       -std=c++17 -I ${CMAKE_SOURCE_DIR}
       -I ${imgui_source_dir}
@@ -176,8 +178,12 @@ if (OPENGL_FOUND AND SDL2_FOUND AND EXISTS "${imgui_source_dir}/imgui.h")
       ${CMAKE_CURRENT_SOURCE_DIR}/todo/item.cpp
       ${CMAKE_CURRENT_SOURCE_DIR}/todo/model.cpp
       ${CMAKE_CURRENT_SOURCE_DIR}/todo/imgui/main.cpp
-      -s USE_SDL=2 -s USE_WEBGL2=1 -s WASM=1 -s FULL_ES3=1
+      -s USE_SDL=2
+      -s USE_WEBGL2=1
+      -s WASM=1
+      -s FULL_ES3=1
       -s ALLOW_MEMORY_GROWTH=1
+      -s MINIFY_HTML=0
       --emrun
       --shell-file ${CMAKE_SOURCE_DIR}/resources/emscripten_shell_minimal.html
       -o ${CMAKE_CURRENT_BINARY_DIR}/todo-imgui.html

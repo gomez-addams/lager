@@ -10,7 +10,7 @@
 // or here: <https://github.com/arximboldi/lager/blob/master/LICENSE>
 //
 
-#include <catch.hpp>
+#include <catch2/catch.hpp>
 
 #include <lager/constant.hpp>
 #include <lager/cursor.hpp>
@@ -34,6 +34,8 @@ using namespace lager;
 TEST_CASE("in, construction and assignment from temporary")
 {
     reader<int> in1;
+    // Access to uninitialized reader should throw an exception
+    REQUIRE_THROWS(in1.get());
     in1 = make_state(0);
     reader<int> in2{make_state(0)};
 }
@@ -41,6 +43,9 @@ TEST_CASE("in, construction and assignment from temporary")
 TEST_CASE("out, construction_and_assignment_from_temporary")
 {
     writer<int> out1;
+    // Access to uninitialized writer should throw an exception
+    REQUIRE_THROWS(out1.set(42));
+    REQUIRE_THROWS(out1.update([](auto){ return 42;}));
     out1 = make_state(0);
     writer<int> out2{make_state(0)};
 }
@@ -48,6 +53,10 @@ TEST_CASE("out, construction_and_assignment_from_temporary")
 TEST_CASE("inout, construction_and_assignment_from_temporary")
 {
     cursor<int> inout1;
+    // Access to uninitialized cursor should throw an exception
+    REQUIRE_THROWS(inout1.get());
+    REQUIRE_THROWS(inout1.set(42));
+    REQUIRE_THROWS(inout1.update([](auto){ return 42;}));
     inout1 = make_state(0);
     cursor<int> inout2{make_state(0)};
 }
@@ -217,3 +226,26 @@ TEST_CASE("lenses over with expression")
     CHECK(person_data->name == "new name");
     CHECK(name.get() == "new name");
 }
+
+struct Foo;
+struct Bar
+{
+    lager::reader<Foo> foo;
+    reader<Foo> get_reader() const;
+};
+struct Baz
+{
+    Baz(const lager::reader<Foo>& r);
+};
+TEST_CASE("forward declare a reader value")
+{
+    auto bar = Bar();
+    auto baz = Baz(bar.get_reader());
+}
+struct Foo
+{};
+lager::reader<Foo> Bar::get_reader() const
+{
+    return lager::make_constant(Foo());
+}
+Baz::Baz(const lager::reader<Foo>&) {}

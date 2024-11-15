@@ -12,6 +12,7 @@
 
 #pragma once
 
+#include <lager/config.hpp>
 #include <lager/detail/access.hpp>
 #include <lager/effect.hpp>
 #include <lager/util.hpp>
@@ -95,7 +96,7 @@ struct debugger
         lookup_result lookup(cursor_t cursor) const
         {
             if (cursor > history.size())
-                throw std::runtime_error{"bad cursor"};
+                LAGER_THROW(std::runtime_error{"bad cursor"});
             return cursor == 0 ? lookup_result{{}, init} : [&] {
                 auto& step = history[cursor - 1];
                 return lookup_result{step.action, step.model};
@@ -200,7 +201,7 @@ auto with_debugger(Server& serv)
             using model_t    = std::decay_t<decltype(model)>;
             using deps_t     = std::decay_t<decltype(deps)>;
             using debugger_t = Debugger<action_t, model_t, deps_t>;
-            auto& handle     = serv.enable(debugger_t{});
+            auto handle      = serv.make(debugger_t{});
             auto store       = next(
                 type_<typename debugger_t::action>{},
                 typename debugger_t::model{LAGER_FWD(model)},
@@ -209,10 +210,9 @@ auto with_debugger(Server& serv)
                         reducer, LAGER_FWD(model), LAGER_FWD(action));
                 },
                 LAGER_FWD(loop),
-                LAGER_FWD(deps),
+                LAGER_FWD(deps).merge(lager::make_deps(handle)),
                 LAGER_FWD(tags));
-            handle.set_context(store);
-            handle.set_reader(store.xform(zug::map([](auto&& x) {
+            handle->init(store, store.xform(zug::map([](auto&& x) {
                 return static_cast<typename debugger_t::model>(x);
             })));
             return store;

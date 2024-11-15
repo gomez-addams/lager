@@ -12,6 +12,7 @@
 
 #pragma once
 
+#include <lager/config.hpp>
 #include <lager/context.hpp>
 #include <lager/util.hpp>
 
@@ -121,10 +122,10 @@ struct tree_debugger
         {
             auto pos = cursor[cursor_index];
             if (pos.branch >= branches.size())
-                throw std::runtime_error{"bad cursor"};
+                LAGER_THROW(std::runtime_error{"bad cursor"});
             auto& history = branches[pos.branch];
             if (pos.step >= history.size())
-                throw std::runtime_error{"bad cursor"};
+                LAGER_THROW(std::runtime_error{"bad cursor"});
             auto& node      = history[pos.step];
             auto next_index = cursor_index + 1;
             return next_index == cursor.size()
@@ -190,10 +191,10 @@ struct tree_debugger
 
         bool check(const cursor_t& cursor) const
         {
-            try {
+            LAGER_TRY {
                 lookup(cursor);
                 return true;
-            } catch (const std::runtime_error&) {
+            } LAGER_CATCH(const std::runtime_error&) {
                 return false;
             }
         }
@@ -261,14 +262,14 @@ struct tree_debugger
                         auto index = m.cursor.size() - 1;
                         auto pos   = m.cursor.back();
                         m.cursor   = pos.step > 0
-                                         ? m.cursor.set(
+                                       ? m.cursor.set(
                                              index, {pos.branch, pos.step - 1})
-                                         : m.cursor.take(index);
+                                       : m.cursor.take(index);
                     }
                     return m;
                 },
                 [&](redo_action) -> result_t {
-                    throw std::runtime_error{"todo"};
+                    LAGER_THROW(std::runtime_error{"todo"});
                     return m;
                 },
                 [&](pause_action) -> result_t {
@@ -278,20 +279,22 @@ struct tree_debugger
                 [&](resume_action) -> result_t {
                     auto resume_eff =
                         effect<action>{[](auto&& ctx) { ctx.loop().resume(); }};
-                    auto eff         = effect<action>{noop};
-                    auto pending     = m.pending;
-                    m.paused         = false;
-                    m.pending        = {};
-                    std::tie(m, eff) = immer::accumulate(
+                    auto eff     = effect<action>{noop};
+                    auto pending = m.pending;
+                    m.paused     = false;
+                    m.pending    = {};
+                    auto r       = result_t{std::move(m), std::move(eff)};
+                    r            = immer::accumulate(
                         pending,
-                        result_t{m, eff},
+                        std::move(r),
                         [&](result_t acc, auto&& act) -> result_t {
                             auto [m, eff] = LAGER_FWD(acc);
                             auto [new_m, new_eff] =
                                 update(reducer, std::move(m), LAGER_FWD(act));
                             return {new_m, sequence(eff, new_eff)};
                         });
-                    return {m, sequence(resume_eff, eff)};
+                    return {std::move(r.first),
+                            sequence(resume_eff, std::move(r.second))};
                 },
             },
             act);

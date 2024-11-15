@@ -3,43 +3,20 @@
 with import nixpkgs {};
 
 rec {
-  libhttpserver = stdenv.mkDerivation rec {
-    name = "libhttpserver-${version}";
-    version = "git-${commit}";
-    commit = "f4caf637090b5ff39bfc146b0ecd633f670c3697";
-    src = fetchFromGitHub {
-      owner = "etr";
-      repo = "libhttpserver";
-      rev = commit;
-      sha256 = "0cx928sjnhgg008pvg7n8pqk93bm83gz4a8wpz3dq7356j9qqs1m";
-    };
-    propagatedBuildInputs = [ gnutls libmicrohttpd ] ++ gnutls.buildInputs;
-    nativeBuildInputs = [ autoreconfHook ];
-    configureScript = "../configure";
-    configurePhase = ''
-      substituteInPlace configure --replace "/bin/pwd" "${coreutils}/bin/pwd"
-      mkdir build && cd build
-      ../configure -prefix $out
-    '';
-    meta = with lib; {
-      homepage = "https://github.com/etr/libhttpserver";
-      description = "C++ library for creating an embedded Rest HTTP server (and more)";
-      license = licenses.lgpl2;
-    };
-  };
-
   cereal = stdenv.mkDerivation rec {
     name = "cereal-${version}";
     version = "git-arximboldi-${commit}";
-    commit = "f158a44a3277ec2e1807618e63bcb8e1bd559649";
+    commit = "4bfaf5fee1cbc69db4614169092368a29c7607c4";
     src = fetchFromGitHub {
       owner = "arximboldi";
       repo = "cereal";
       rev = commit;
-      sha256 = "1zny1k00npz3vrx6bhhdd2gpsy007zjykvmf5af3b3vmvip5p9sm";
+      sha256 = "17gwhwhih4737wzm24c45y3ch69jzw2mi8prj1pdlxff8f1pki8v";
     };
     nativeBuildInputs = [ cmake ];
-    cmakeFlags="-DJUST_INSTALL_CEREAL=true";
+    cmakeFlags = [
+      "-DJUST_INSTALL_CEREAL=true"
+    ];
     meta = with lib; {
       homepage = "http://uscilab.github.io/cereal";
       description = "A C++11 library for serialization";
@@ -50,14 +27,19 @@ rec {
   immer = stdenv.mkDerivation rec {
     name = "immer-${version}";
     version = "git-${commit}";
-    commit = "ffbc180da6463f8f06af0e96336f161256422b1f";
+    commit = "a1271fa712342f5c6dfad876820da17e10c28214";
     src = fetchFromGitHub {
       owner = "arximboldi";
       repo = "immer";
       rev = commit;
-      sha256 = "0f05mhm2sjmvwy6ix4gfahig26rx63c1ji2zr8nvxy75gslnfkpn";
+      sha256 = "1bqkinkbp1b1aprg7ydfrbfs7gi779nypwvh9fj129frq1c2rxw5";
     };
+    dontUseCmakeBuildDir = true;
     nativeBuildInputs = [ cmake ];
+    cmakeFlags = [
+      "-Dimmer_BUILD_TESTS=OFF"
+      "-Dimmer_BUILD_EXAMPLES=OFF"
+    ];
     meta = with lib; {
       homepage = "http://sinusoid.es/immer";
       description = "Immutable data structures for C++";
@@ -68,15 +50,19 @@ rec {
   zug = stdenv.mkDerivation rec {
     name = "zug-${version}";
     version = "git-${commit}";
-    commit = "be20cae36e7e5876bf5bfb08b2a0562e1db3b546";
+    commit = "7c22cc138e2a9a61620986d1a7e1e9730123f22b";
     src = fetchFromGitHub {
       owner = "arximboldi";
       repo = "zug";
       rev = commit;
-      sha256 = "0vmcnspg9ys4qkj228kgvmpb5whly1cwx30sbg21x2iqs7y11ggx";
+      sha256 = "sha256-/0HnSUmmyX49L6pJk9QlviFF2FYi5o+x++94wwYwWjk=";
     };
     nativeBuildInputs = [ cmake ];
     dontUseCmakeBuildDir = true;
+    cmakeFlags = [
+      "-Dzug_BUILD_TESTS=OFF"
+      "-Dzug_BUILD_EXAMPLES=OFF"
+    ];
     meta = with lib; {
       homepage = "http://sinusoid.es/zug";
       description = "Transducers for C++";

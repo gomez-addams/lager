@@ -12,6 +12,8 @@
 
 #pragma once
 
+#include <lager/config.hpp>
+
 #include <functional>
 #include <mutex>
 #include <stdexcept>
@@ -36,15 +38,17 @@ struct safe_queue_event_loop
         }
     }
 
-    void finish() { throw std::logic_error{"not implemented!"}; }
-    void pause() { throw std::logic_error{"not implemented!"}; }
-    void resume() { throw std::logic_error{"not implemented!"}; }
+    void finish() { LAGER_THROW(std::logic_error{"not implemented!"}); }
+    void pause() { LAGER_THROW(std::logic_error{"not implemented!"}); }
+    void resume() { LAGER_THROW(std::logic_error{"not implemented!"}); }
     template <typename Fn>
     void async(Fn&& fn)
     {
-        throw std::logic_error{"not implemented!"};
+        LAGER_THROW(std::logic_error{"not implemented!"});
     }
 
+    // If there is an exception, the step() function needs to be re-run for the
+    // queue to be fully processed.
     void step()
     {
         assert(thread_id_ == std::this_thread::get_id());
@@ -70,9 +74,15 @@ private:
 
     void run_local_queue_()
     {
-        for (auto i = std::size_t{}; i < local_queue_.size(); ++i) {
-            auto fn = local_queue_[i];
-            fn();
+        for (auto i = std::size_t{}; i < local_queue_.size();) {
+            try {
+                auto fn = std::move(local_queue_[i++]);
+                std::move(fn)();
+            } catch (...) {
+                local_queue_.erase(local_queue_.begin(),
+                                   local_queue_.begin() + i);
+                throw;
+            }
         }
         local_queue_.clear();
     }
